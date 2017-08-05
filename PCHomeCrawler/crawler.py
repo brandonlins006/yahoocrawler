@@ -27,7 +27,7 @@ class PCHomeCrawler(object):
             Input: Type
             Output: To Parse DB
         ''')
-        parser.add_argument('-type', metavar='CrawlerType', help='TYPE hotranknew/subs/list ', required=True)
+        parser.add_argument('-type', metavar='CrawlerType', help='TYPE hotranknew/subs/list/detailcrawl ', required=True)
         parser.add_argument('-index', metavar=('START_INDEX', 'END_INDEX'), type=int, nargs=2, help="Start and end index for zones")
         parser.add_argument('-list', metavar='List', help="List all zones and subs")
         
@@ -78,8 +78,6 @@ class PCHomeCrawler(object):
                 end = start if args.index[1]<start else args.index[1]
             else:
                 start,end=0,len(zidList)-1
-            print(start,end)
-            listnum=0
             for idx,zone in enumerate(zoneResultList):
                 if idx<start:
                     continue
@@ -89,14 +87,44 @@ class PCHomeCrawler(object):
                 zoneUrl=baseUrl+"?z="+zone['zid'].split('z')[1]
                 self.crawlData(self,zoneUrl,'zone',zone['zone'],zone['zid'])
                 for sub in zone['subs']:
-                    print(listnum)
-                    listnum+=1
                     subUrl=baseUrl+"?sub="+sub['sid']
                     print('\n'+sub["subname"])
                     self.crawlData(self,subUrl,'sub',zone['zone'],zone['zid'],sub["subname"],int(sub['sid']))
+        elif args.type=="detailcrawl":
+            print('crawlering the item detail ...')
+            className='NewHotItem'
+            results=json.loads(self.getUncrawledItems(className))['results']
+            for idx,item in enumerate(results):
+                print(item['itemName'])
+                updateData=self.crawlSingleItem(baseUrl+item['url'],item['price'])
+                print(json.dumps(updateData))
+                print(self.updateSingleItem(className,item['objectId'],updateData))
+                
         else:
-            print('you have the wrong type')    
-        
+            print('you have the wrong type')
+    @staticmethod
+    def updateSingleItem(className,objectID,data):
+        url = 'https://parseapi.back4app.com/classes/'+className+'/'+objectID 
+        r = requests.put(url, data=json.dumps(data), headers=parseServerheaders)
+        return r.text
+    @staticmethod
+    def crawlSingleItem(url,price):
+        bs=BeautifulSoup(requests.get(url).text,"html.parser")
+        updateData={}
+        if(len(bs.select('#cl-mainitem'))):
+            mainitem=bs.select('#cl-mainitem')[0]
+            updateData['suggestPrice']=mainitem.select('.suggest .price')[0].get_text().replace('$','').replace(',','') if len(mainitem.select('.suggest .price')) else ""
+            updateData['desc']=mainitem.select('.desc-list')[0].get_text() if len(mainitem.select('.desc-list')) else ""
+            updateData['price']=mainitem.select('.priceinfo .price')[0].get_text().replace('$','').replace(',','') if len(mainitem.select('.priceinfo .price')) else price
+            updateData['discount']=str(int(updateData['price'])/int(updateData['suggestPrice'])) if updateData['suggestPrice']!='' else ''
+        updateData['relationItems']=','.join([item.get_text() for item in bs.select('#cl-ordrank .yui3-u-1.desc')]) 
+        updateData['detailCrawled']=True
+        return  updateData
+    @staticmethod
+    def getUncrawledItems(className):
+        url = 'https://parseapi.back4app.com/classes/'+className 
+        r = requests.get(url, params={'where':json.dumps({"detailCrawled":False}),'limit':1000}, headers=parseServerheaders)
+        return r.text
     @staticmethod
     def crawlHotRankNewItem(self,pditem,zoneName,zid,subName,subId):
         price =BeautifulSoup(pditem['price'], "lxml").get_text().replace('$','')
@@ -119,7 +147,6 @@ class PCHomeCrawler(object):
     def saveItem(saveClass,data):
         url = 'https://parseapi.back4app.com/classes/'+saveClass 
         r = requests.post(url, data=json.dumps(data), headers=parseServerheaders)
-        time.sleep(0.005)
         return r.text
     @staticmethod
     def crawlData(self,url,classType,zoneName,zid,subName=0,subId=0):
@@ -145,4 +172,4 @@ class PCHomeCrawler(object):
             print(self.saveItem(classType+"Item",data))
 
 if __name__ == '__main__':
-    c = PCHomeCrawler()
+    PCHomeCrawler()
