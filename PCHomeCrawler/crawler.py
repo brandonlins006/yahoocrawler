@@ -17,6 +17,9 @@ import time
 
 baseUrl="https://tw.buy.yahoo.com/"
 __version__ = '1.0'
+parseServerheaders = {'X-Parse-Application-Id':'Zq6vv931b0uypUjexa2LWBZW00JWE8esl6nj6oj1',
+                      'X-Parse-REST-API-Key':'hRIlgb9yI7RUq7z0KgjOsBF3UfQokX7j5LFeFR0E',
+                      'content-type': 'application/json'}
 
 # if python 2, disable verify flag in requests.get()
 VERIFY = True
@@ -52,31 +55,60 @@ class PCHomeCrawler(object):
         for zone in zoneResultList:
             print('\n'+zone["zone"])
             zoneUrl=baseUrl+"?z="+zone['zid'].split('z')[1]
-            rzs=requests.get(zoneUrl)
-            bsZone=BeautifulSoup(rzs.text, "html.parser")
-            zoneBestList=bsZone.select("#cl-hotrank .pdset")
-            for item in zoneBestList:
-                print(item.select('.pic')[0].a['href'])
-                intro=item.select('.intro')[0]
-                print(intro.select('.text')[0].text,
-                      intro.select('.text')[0].a['href'],
-                      intro.select('.red-price')[0].text)
+            self.crawlData(self,zoneUrl,'zone',zone['zone'],zone['zid'])
+            # rzs=requests.get(zoneUrl)
+            # bsZone=BeautifulSoup(rzs.text, "html.parser")
+            # zoneBestList=bsZone.select("#cl-hotrank .pdset")
+            # for item in zoneBestList:
+            #     print(item.select('.pic')[0].a['href'])
+            #     intro=item.select('.intro')[0]
+            #     data={
+            #                   "zoneName":zone["zone"],
+            #                   "zomeId":zone['zid'],
+            #                   "itemName":intro.select('.text')[0].text,
+            #                   "url":intro.select('.text')[0].a['href'],
+            #                   "price":int(intro.select('.red-price')[0].text),
+            #                   "detailCrawled":0
+            #               }
+                
+            #     print(r,r.text)
             for sub in zone['subs']:
                 print(listnum)
                 listnum+=1
                 subUrl=baseUrl+"?sub="+sub['sid']
                 print('\n'+sub["subname"])
-                rss=requests.get(subUrl)
-                bsSub=BeautifulSoup(rss.text, "html.parser")
-                subBestList=bsSub.select("#cl-hotrank .pdset")
-                for item in subBestList:
-                    print(item.select('.pic')[0].a['href'])
-                    intro=item.select('.intro')[0]
-                    print(intro.select('.text')[0].text,
-                          intro.select('.text')[0].a['href'],
-                          intro.select('.red-price')[0].text)
+                self.crawlData(self,subUrl,'sub',zone['zone'],zone['zid'],sub["subname"],sub['sid'])
             time.sleep(0.05)
-
+    @staticmethod
+    def saveItem(saveClass,data):
+        url = 'https://parseapi.back4app.com/classes/'+saveClass 
+        r = requests.post(url, data=json.dumps(data), headers=parseServerheaders)
+        time.sleep(0.01)
+        return r.text
+    @staticmethod
+    def crawlData(self,url,classType,zoneName,zid,subName=0,subId=0):
+        rs=requests.get(url)
+        bs=BeautifulSoup(rs.text, "html.parser")
+        bestList=bs.select("#cl-hotrank .pdset")
+        for item in bestList:
+            print(item.select('.pic')[0].a['href'])
+            intro=item.select('.intro')[0]
+            print(intro.select('.text')[0].text,
+                  intro.select('.text')[0].a['href'],
+                  intro.select('.red-price')[0].text)
+            data={
+                      "zoneName":zoneName,
+                      "zoneId":zid,
+                      "itemName":intro.select('.text')[0].text,
+                      "url":intro.select('.text')[0].a['href'],
+                      "price":int(intro.select('.red-price')[0].text),
+                      "detailCrawled":0
+                  }
+            if subId:
+                data['subId']:subId
+                data['subName']:subName
+            
+            print(self.saveItem(classType+"Item",data))
 
 if __name__ == '__main__':
     c = PCHomeCrawler()
