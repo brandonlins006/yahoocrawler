@@ -2,14 +2,10 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
-import re
-import json
+import re,json,time,codecs,sys
 import requests
 import argparse
-import time
-import codecs,sys
 from bs4 import BeautifulSoup
-import time
 
 baseUrl="https://tw.buy.yahoo.com/"
 __version__ = '1.0'
@@ -131,11 +127,8 @@ class PCHomeCrawler(object):
         bs=BeautifulSoup(rs.text, "html.parser")
         bestList=bs.select("#cl-hotrank .pdset")
         for idx,item in enumerate(bestList):
-            print(item.select('.pic')[0].a['href'])
             intro=item.select('.intro')[0]
-            print(intro.select('.text')[0].text,
-                  intro.select('.text')[0].a['href'],
-                  intro.select('.red-price')[0].text)
+            print(intro.select('.text')[0].text)
             data={    "picHref" : item.select('.pic')[0].a['href'],
                       "zoneName":zoneName,
                       "zoneId":zid,
@@ -145,11 +138,9 @@ class PCHomeCrawler(object):
                       "detailCrawled":False,
                       "rank":idx+1
                   }
-            #print('subId',subId)
             if subId>0:
                 data['subId']=subId
                 data['subName']=subName
-            #print(json.dumps(data))
             
             print(self.saveItem(classType+"Item",data))
 
