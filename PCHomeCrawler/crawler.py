@@ -35,10 +35,8 @@ class PCHomeCrawler(object):
         new_text=re.sub(r"(\n\s*<!--\n\s*<)|(\n\s*-->\n\s*<)","\n<",res.text)
         #print(new_text)
         soup=BeautifulSoup(new_text, "html.parser")
-        zoneResultList=[]
+        zoneResultList,sidList, zidList= [],[],[]
         zonelist=soup.select("li[zid]")
-        sidList=[]
-        zidList=[]
         for zone in zonelist:
             sublist=zone.select("li[sid]")
             subs=[]
@@ -47,7 +45,7 @@ class PCHomeCrawler(object):
                 subs.append({"subname":sub.get_text().replace('\n',''),"sid":sub['sid']})
             zoneResultList.append({"zone":zone.select("a.yui3-menu-label")[0].text,"subs":subs,"zid":zone['zid']})
             zidList.append(zone['zid'])
-        print(zoneResultList)
+        #print(zoneResultList)
         print(len(zonelist))
         print(zidList)
         print(sorted(sidList))
@@ -56,28 +54,12 @@ class PCHomeCrawler(object):
             print('\n'+zone["zone"])
             zoneUrl=baseUrl+"?z="+zone['zid'].split('z')[1]
             self.crawlData(self,zoneUrl,'zone',zone['zone'],zone['zid'])
-            # rzs=requests.get(zoneUrl)
-            # bsZone=BeautifulSoup(rzs.text, "html.parser")
-            # zoneBestList=bsZone.select("#cl-hotrank .pdset")
-            # for item in zoneBestList:
-            #     print(item.select('.pic')[0].a['href'])
-            #     intro=item.select('.intro')[0]
-            #     data={
-            #                   "zoneName":zone["zone"],
-            #                   "zomeId":zone['zid'],
-            #                   "itemName":intro.select('.text')[0].text,
-            #                   "url":intro.select('.text')[0].a['href'],
-            #                   "price":int(intro.select('.red-price')[0].text),
-            #                   "detailCrawled":0
-            #               }
-                
-            #     print(r,r.text)
             for sub in zone['subs']:
                 print(listnum)
                 listnum+=1
                 subUrl=baseUrl+"?sub="+sub['sid']
                 print('\n'+sub["subname"])
-                self.crawlData(self,subUrl,'sub',zone['zone'],zone['zid'],sub["subname"],sub['sid'])
+                self.crawlData(self,subUrl,'sub',zone['zone'],zone['zid'],sub["subname"],int(sub['sid']))
             time.sleep(0.05)
     @staticmethod
     def saveItem(saveClass,data):
@@ -90,23 +72,26 @@ class PCHomeCrawler(object):
         rs=requests.get(url)
         bs=BeautifulSoup(rs.text, "html.parser")
         bestList=bs.select("#cl-hotrank .pdset")
-        for item in bestList:
+        for idx,item in enumerate(bestList):
             print(item.select('.pic')[0].a['href'])
             intro=item.select('.intro')[0]
             print(intro.select('.text')[0].text,
                   intro.select('.text')[0].a['href'],
                   intro.select('.red-price')[0].text)
-            data={
+            data={    "picHref" : item.select('.pic')[0].a['href'],
                       "zoneName":zoneName,
                       "zoneId":zid,
                       "itemName":intro.select('.text')[0].text,
                       "url":intro.select('.text')[0].a['href'],
                       "price":int(intro.select('.red-price')[0].text),
-                      "detailCrawled":0
+                      "detailCrawled":False,
+                      "rank":idx+1
                   }
-            if subId:
-                data['subId']:subId
-                data['subName']:subName
+            #print('subId',subId)
+            if subId>0:
+                data['subId']=subId
+                data['subName']=subName
+            print(json.dumps(data))
             
             print(self.saveItem(classType+"Item",data))
 
