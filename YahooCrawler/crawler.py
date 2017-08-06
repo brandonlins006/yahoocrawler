@@ -14,10 +14,6 @@ parseServerheaders = {'X-Parse-Application-Id':'Zq6vv931b0uypUjexa2LWBZW00JWE8es
                       'content-type': 'application/json'}
 parseRESTAPIBaseUrl="https://parseapi.back4app.com/"
 # if python 2, disable verify flag in requests.get()
-VERIFY = True
-if sys.version_info[0] < 3:
-    VERIFY = False
-    requests.packages.urllib3.disable_warnings()
 
 class YahooCrawler(object):
     def __init__(self,cmdline=None):
@@ -166,11 +162,6 @@ class YahooCrawler(object):
         }
         print(data['itemName'],data['price'])
         return data
-    @staticmethod
-    def saveItem(saveClass,data):
-        url = parseRESTAPIBaseUrl+'classes/'+saveClass 
-        r = requests.post(url, data=json.dumps(data), headers=parseServerheaders)
-        return r.text
     @staticmethod
     def crawlData(self,url,classType,zoneName,zid,subName=0,subId=0):
         rs=requests.get(url)

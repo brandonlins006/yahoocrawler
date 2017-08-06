@@ -13,7 +13,7 @@ Python module YahooCrawler crawl data with the following steps:
 * Determinate which type of ranking to crawl
 	* **Type 1**: called"**subs**" is the ranks show at every category links( http://tw.buy.yahoo.com/?sub=xxxx or z=xxx)
 	![Imgur](http://i.imgur.com/cHsdFGy.png)
-	* ** Type 2**: called"**hotranknew**" which is the ranks shows at the bottem of homepage
+	* **Type 2**: called"**hotranknew**" which is the ranks shows at the bottem of homepage
 	![Imgur](http://i.imgur.com/MAGRTWB.png)
 	
 * Save the items to db, ready for crawling the deatail info for every items
@@ -63,17 +63,19 @@ You can change the `parseServerheaders` and `parseRESTAPIBaseUrl` value in ./Yah
 
 ### 4.Usage
 
-####a.Crawl Ranks Data
+a. **Crawl Ranks Data**
 
 
 	cd YahooCrawler	
+	# List all categories ids
+	python crawler.py -type list
 	# For crawling type 1 subs 
 	python crawler.py -type subs -index <zone start> <zone ends>
 
 	# For crawling type 2 hotranknew 
 	python crawler.py -type hotranknew
 
-####b.Crawl Item Detail 
+b. **Crawl Item Detail** 
 	
 	# For crawling eveyitem detailed on specific category 
 	python crawler.py -type detailcrawl -iclass subItem  #Detail of subs items
@@ -82,15 +84,17 @@ You can change the `parseServerheaders` and `parseRESTAPIBaseUrl` value in ./Yah
 ![Imgur](http://i.imgur.com/QEySpFR.png)
 
 
-####c.Analysis
+c. **Analysis**
 Open [DataBrowser](https://python-crawler-yahoo-tw.herokuapp.com/apps/yahooshoppingdata/browser/NewHotItem)
 in the menu Browser > "subItem" or "NewHotItem" or "zoneItem"
+
 ![Imgur](http://i.imgur.com/tJi7m0R.png)
 ![Imgur](http://i.imgur.com/tQtLQ4m.png)
 
-**Filter**
+* Filter 
+
 ![Imgur](http://i.imgur.com/hiBBlpX.png)
 
-**Export Data**
+* Export Data
 
 ![Imgur](http://i.imgur.com/CGn0nTQ.png)
