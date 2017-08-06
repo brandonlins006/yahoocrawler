@@ -12,7 +12,7 @@ __version__ = '1.0'
 parseServerheaders = {'X-Parse-Application-Id':'Zq6vv931b0uypUjexa2LWBZW00JWE8esl6nj6oj1',
                       'X-Parse-REST-API-Key':'hRIlgb9yI7RUq7z0KgjOsBF3UfQokX7j5LFeFR0E',
                       'content-type': 'application/json'}
-
+parseRESTAPIBaseUrl="https://parseapi.back4app.com/"
 # if python 2, disable verify flag in requests.get()
 VERIFY = True
 if sys.version_info[0] < 3:
@@ -126,7 +126,7 @@ class PCHomeCrawler(object):
                     reqData["body"]=data
                 requestDatas.append(reqData)
             partBody={"requests":requestDatas}
-            url = 'https://parseapi.back4app.com/batch' 
+            url = parseRESTAPIBaseUrl+'batch' 
             r = requests.post(url, data=json.dumps(partBody), headers=parseServerheaders)
             print(r.text)
         return 0
@@ -145,7 +145,7 @@ class PCHomeCrawler(object):
         return  updateData
     @staticmethod
     def getUncrawledItems(className):
-        url = 'https://parseapi.back4app.com/classes/'+className 
+        url = parseRESTAPIBaseUrl+'classes/'+className 
         r = requests.get(url, params={'where':json.dumps({"detailCrawled":False}),'limit':1000}, headers=parseServerheaders)
         return r.text
     @staticmethod
@@ -168,7 +168,7 @@ class PCHomeCrawler(object):
         return data
     @staticmethod
     def saveItem(saveClass,data):
-        url = 'https://parseapi.back4app.com/classes/'+saveClass 
+        url = parseRESTAPIBaseUrl+'classes/'+saveClass 
         r = requests.post(url, data=json.dumps(data), headers=parseServerheaders)
         return r.text
     @staticmethod
@@ -176,6 +176,7 @@ class PCHomeCrawler(object):
         rs=requests.get(url)
         bs=BeautifulSoup(rs.text, "html.parser")
         bestList=bs.select("#cl-hotrank .pdset")
+        saveDataList=[]
         for idx,item in enumerate(bestList):
             intro=item.select('.intro')[0]
             print(intro.select('.text')[0].text)
@@ -191,8 +192,9 @@ class PCHomeCrawler(object):
             if subId>0:
                 data['subId']=subId
                 data['subName']=subName
-            
-            print(self.saveItem(classType+"Item",data))
+            saveDataList.append(data)
+        self.batchUploadItem(saveDataList,classType+"Item",'create')
+        return 0
 
 if __name__ == '__main__':
     PCHomeCrawler()
