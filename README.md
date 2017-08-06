@@ -7,7 +7,7 @@
 ### 1.Intro
 Crawler that crawl all the ranking data from <https://tw.buy.yahoo.com>
 
-Python module PCHomeCralwer crawl data with the following steps:
+Python module YahooCrawler crawl data with the following steps:
 
 * Crawl ALL categories(main category called **zone**, subcatogy called **sub** ) from homepage
 * Determinate which type of ranking to crawl
@@ -55,7 +55,7 @@ Python module PCHomeCralwer crawl data with the following steps:
 I use parse app framework <https://github.com/parse-community/parse-server> host by <https://back4app.io>
 DB is Mongo DB 
 
-You can change the `parseServerheaders` and `parseRESTAPIBaseUrl` value in ./PCHomeCrawler/crawler.py if you host on another parse app URL
+You can change the `parseServerheaders` and `parseRESTAPIBaseUrl` value in ./YahooCrawler/crawler.py if you host on another parse app URL
 
 
 
@@ -66,7 +66,7 @@ You can change the `parseServerheaders` and `parseRESTAPIBaseUrl` value in ./PCH
 ####a.Crawl Ranks Data
 
 
-	cd PCHomeCrawler	
+	cd YahooCrawler	
 	# For crawling type 1 subs 
 	python crawler.py -type subs -index <zone start> <zone ends>
 

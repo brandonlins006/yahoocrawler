@@ -19,7 +19,7 @@ if sys.version_info[0] < 3:
     VERIFY = False
     requests.packages.urllib3.disable_warnings()
 
-class PCHomeCrawler(object):
+class YahooCrawler(object):
     def __init__(self,cmdline=None):
         ##request~
         parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter, description='''
@@ -197,4 +197,4 @@ class PCHomeCrawler(object):
         return 0
 
 if __name__ == '__main__':
-    PCHomeCrawler()
+    YahooCrawler()
