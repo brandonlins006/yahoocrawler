@@ -30,7 +30,7 @@ class PCHomeCrawler(object):
         parser.add_argument('-type', metavar='CrawlerType', help='TYPE hotranknew/subs/list/detailcrawl ', required=True)
         parser.add_argument('-index', metavar=('START_INDEX', 'END_INDEX'), type=int, nargs=2, help="Start and end index for zones")
         parser.add_argument('-list', metavar='List', help="List all zones and subs")
-        
+        parser.add_argument('-iclass', metavar='DetailClass', help="The Detail Class to Crawl")
         if cmdline:
             args = parser.parse_args(cmdline)
         else:
@@ -65,12 +65,14 @@ class PCHomeCrawler(object):
                 r=requests.get(requestsAPIBase+urlString)
                 rs=json.loads(r.text)['billboard']
                 labels,smallSubIds=[item['label'] for item in rs['tabs']+rs['othertab']],rs['subId'].split(",")
+                rankDataList=[]
                 for idx,subitems in enumerate(rs['panels']):
                     subid,subname=int(smallSubIds[idx]),labels[idx]
                     zoneName,zid=subsToZone[subid]['zone'],subsToZone[subid]['zid']
-                    self.crawlHotRankNewItem(self,subitems['mainitem'],zoneName,zid,subname,subid)
+                    rankDataList.append(self.crawlHotRankNewItem(self,subitems['mainitem'],zoneName,zid,subname,subid))
                     for item in subitems['pditem']:
-                        self.crawlHotRankNewItem(self,item,zoneName,zid,subname,subid)
+                        rankDataList.append(self.crawlHotRankNewItem(self,item,zoneName,zid,subname,subid))
+                self.batchUploadItem(rankDataList,'NewHotItem','create')
         elif args.type=="subs":
             print("subs")
             if args.index and args.index[0]>=0:
@@ -91,22 +93,43 @@ class PCHomeCrawler(object):
                     print('\n'+sub["subname"])
                     self.crawlData(self,subUrl,'sub',zone['zone'],zone['zid'],sub["subname"],int(sub['sid']))
         elif args.type=="detailcrawl":
-            print('crawlering the item detail ...')
-            className='NewHotItem'
+            className=args.iclass if args.iclass else 'NewHotItem'
+            print('crawlering the item detail of the class...', className)
             results=json.loads(self.getUncrawledItems(className))['results']
+            updateDataList=[]
             for idx,item in enumerate(results):
-                print(item['itemName'])
-                updateData=self.crawlSingleItem(baseUrl+item['url'],item['price'])
-                print(json.dumps(updateData))
-                print(self.updateSingleItem(className,item['objectId'],updateData))
-                
+                print(idx,item['itemName'])
+                updateData=self.crawlSingleItem(baseUrl+item['url'].replace(baseUrl,""),item['price'])
+                updateData['objectId']=item['objectId']
+                updateDataList.append(updateData)
+            self.batchUploadItem(updateDataList,className,'update')    
         else:
             print('you have the wrong type')
     @staticmethod
-    def updateSingleItem(className,objectID,data):
-        url = 'https://parseapi.back4app.com/classes/'+className+'/'+objectID 
-        r = requests.put(url, data=json.dumps(data), headers=parseServerheaders)
-        return r.text
+    def batchUploadItem(dataList,className,opType):
+        print('uplodaing data to parse server..',opType)
+        for listpart in [dataList[i:i+50] for i in range(0, len(dataList), 50)]:
+            requestDatas=[]
+            for data in listpart:
+                if opType=='update':
+                    reqData={
+                        "method":"PUT",
+                        "path":"classes/"+className+'/'+data['objectId'] 
+                    }
+                    data.pop('objectId')
+                    reqData["body"]=data
+                elif opType=='create':
+                    reqData={
+                        "method":"POST",
+                        "path":"classes/"+className
+                    }
+                    reqData["body"]=data
+                requestDatas.append(reqData)
+            partBody={"requests":requestDatas}
+            url = 'https://parseapi.back4app.com/batch' 
+            r = requests.post(url, data=json.dumps(partBody), headers=parseServerheaders)
+            print(r.text)
+        return 0
     @staticmethod
     def crawlSingleItem(url,price):
         bs=BeautifulSoup(requests.get(url).text,"html.parser")
@@ -141,8 +164,8 @@ class PCHomeCrawler(object):
             "subId":subId,
             "subName":subName
         }
-        print(pditem['desc'],self.saveItem("NewHotItem",data))
-        return 0
+        print(data['itemName'],data['price'])
+        return data
     @staticmethod
     def saveItem(saveClass,data):
         url = 'https://parseapi.back4app.com/classes/'+saveClass 
