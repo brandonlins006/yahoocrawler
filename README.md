@@ -46,10 +46,12 @@ Python module YahooCrawler crawl data with the following steps:
 	
 ##### Dependencies
 
-* python 3.xx
-* requests
-* beautifulsoup4
-* argparse
+* python 3.xx 
+	* requests
+	* beautifulsoup4
+	* argparse
+	* selenium
+*chromedriver 
 
 ##### DB
 I use parse app framework <https://github.com/parse-community/parse-server> host by <https://back4app.io>
@@ -70,7 +72,7 @@ a. **Crawl Ranks Data**
 	# List all categories ids
 	python crawler.py -type list
 	# For crawling type 1 subs 
-	python crawler.py -type subs -index <zone start> <zone ends>
+	python crawler.py -type subs -index <zone start> <zone ends> -u <Yahoo Username> -p <Yahoo Password>
 
 	# For crawling type 2 hotranknew 
 	python crawler.py -type hotranknew

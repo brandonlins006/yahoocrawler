@@ -6,6 +6,7 @@ import re,json,time,codecs,sys
 import requests
 import argparse
 from bs4 import BeautifulSoup
+from selenium import webdriver
 
 baseUrl="https://tw.buy.yahoo.com/"
 __version__ = '1.0'
@@ -27,6 +28,8 @@ class YahooCrawler(object):
         parser.add_argument('-index', metavar=('START_INDEX', 'END_INDEX'), type=int, nargs=2, help="Start and end index for zones")
         parser.add_argument('-list', metavar='List', help="List all zones and subs")
         parser.add_argument('-iclass', metavar='DetailClass', help="The Detail Class to Crawl")
+        parser.add_argument('-u', metavar='Yahoousername', help="Username of Yahoo")
+        parser.add_argument('-p', metavar='Yahooupassword', help="Password of Yahoo")
         if cmdline:
             args = parser.parse_args(cmdline)
         else:
@@ -71,6 +74,7 @@ class YahooCrawler(object):
                 self.batchUploadItem(rankDataList,'NewHotItem','create')
         elif args.type=="subs":
             print("subs")
+            self.browserDataList=[]
             if args.index and args.index[0]>=0:
                 start = args.index[0]
                 end = start if args.index[1]<start else args.index[1]
@@ -88,6 +92,11 @@ class YahooCrawler(object):
                     subUrl=baseUrl+"?sub="+sub['sid']
                     print('\n'+sub["subname"])
                     self.crawlData(self,subUrl,'sub',zone['zone'],zone['zid'],sub["subname"],int(sub['sid']))
+            if len(self.browserDataList) :
+                try:
+                    self.crawlDataByBrowser(self,args.u,args.p,'subs')
+                except:
+                    print('auth or browser error')
         elif args.type=="detailcrawl":
             className=args.iclass if args.iclass else 'NewHotItem'
             print('crawlering the item detail of the class...', className)
@@ -163,17 +172,61 @@ class YahooCrawler(object):
         print(data['itemName'],data['price'])
         return data
     @staticmethod
-    def crawlData(self,url,classType,zoneName,zid,subName=0,subId=0):
+    def crawlData(self,url,classType,zoneName,zoneId,subName='',subId=0):
         rs=requests.get(url)
         bs=BeautifulSoup(rs.text, "html.parser")
         bestList=bs.select("#cl-hotrank .pdset")
+        saveDataList=[]
+        if len(bestList) ==0 :  
+            self.browserDataList.append({
+                'url':url,
+                'classType':classType,
+                'zoneName': zoneName,
+                'zoneId':zoneId,
+                'subName':subName,
+                'subId':subId
+            })
+            print("This url has to login or nothing to crawler",url)
+            return 0
+        self.saveSubRankData(self,bestList,zoneId,zoneName,subId,subName,classType+'Item')
+        return 0
+    @staticmethod
+    def crawlDataByBrowser(self,inputName,inputPassword,crawlType):
+        driver = webdriver.Chrome(executable_path=r'../chromedriver')  # PhantomJs
+        driver.get('https://login.yahoo.com/')  
+        try :
+            driver.switch_to_alert().accept()
+        except:
+            print('no alert')
+        username = driver.find_element_by_xpath("//input[@name='username']")
+        username.send_keys(inputName)
+        driver.find_element_by_xpath("//input[@type='submit']").click()
+        time.sleep(0.5)
+        password = driver.find_element_by_xpath("//input[@name='password']")
+        password.send_keys(inputPassword)
+        driver.find_element_by_xpath("//button[@type='submit']").click()
+        time.sleep(3)
+        driver.get('https://tw.buy.yahoo.com/?sub=566')
+        driver.find_element_by_xpath("//form[@method='post']").click()
+        time.sleep(3)
+        if crawlType=='subs':
+            for this in self.browserDataList:
+                driver.get(this['url'])
+                r_text=driver.find_element_by_xpath("//div[@id='cl-hotrank']").get_attribute('innerHTML')
+                bestList=BeautifulSoup(r_text, "html.parser").select(".pdset")
+                self.saveSubRankData(self,bestList,
+                    this['zoneId'],this['zoneName'],this['subId'],this['subName'],'browserItem')
+        driver.close()
+        return 0
+    @staticmethod
+    def saveSubRankData(self,bestList,zoneId,zoneName,subId,subName,className):
         saveDataList=[]
         for idx,item in enumerate(bestList):
             intro=item.select('.intro')[0]
             print(intro.select('.text')[0].text)
             data={    "picHref" : item.select('.pic')[0].a['href'],
                       "zoneName":zoneName,
-                      "zoneId":zid,
+                      "zoneId":zoneId,
                       "itemName":intro.select('.text')[0].text,
                       "url":intro.select('.text')[0].a['href'],
                       "price":intro.select('.red-price')[0].text ,
@@ -184,8 +237,7 @@ class YahooCrawler(object):
                 data['subId']=subId
                 data['subName']=subName
             saveDataList.append(data)
-        self.batchUploadItem(saveDataList,classType+"Item",'create')
+        self.batchUploadItem(saveDataList,className,'create')
         return 0
-
 if __name__ == '__main__':
     YahooCrawler()
